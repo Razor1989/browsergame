@@ -19,17 +19,18 @@ angular.module('app.game', [])
 
             Game.create = function () {
 
-                this.input.on('pointerup',handleClick);
+                this.input.on('pointerup', handleClick);
 
                 Game.camera = this.cameras.main;
+                Game.camera.setBounds(0, 0, 20 * 32, 20 * 32);
                 Game.map = Game.scene.make.tilemap({key: 'map1'});
                 var tiles = Game.map.addTilesetImage('tileset1', 'tileset1');
                 Game.map.createStaticLayer(0, tiles, 0, 0);
+                Game.map.createStaticLayer(1, tiles, 0, 0);
 
                 Game.marker = this.add.graphics();
                 Game.marker.lineStyle(3, 0xffffff, 1);
                 Game.marker.strokeRect(0, 0, Game.map.tileWidth, Game.map.tileHeight);
-
 
 
                 cursor = this.input.keyboard.createCursorKeys();
@@ -42,12 +43,12 @@ angular.module('app.game', [])
 
                 // We create the 2D array representing all the tiles of our map
                 var grid = [];
-                for(var y = 0; y < Game.map.height; y++){
+                for (var y = 0; y < Game.map.height; y++) {
                     var col = [];
-                    for(var x = 0; x < Game.map.width; x++){
+                    for (var x = 0; x < Game.map.width; x++) {
                         // In each cell we store the ID of the tile, which corresponds
                         // to its index in the tileset of the map ("ID" field in Tiled)
-                        col.push(getTileID(x,y));
+                        col.push(getTileID(x, y));
                     }
                     grid.push(col);
                 }
@@ -59,14 +60,14 @@ angular.module('app.game', [])
 
                 // We need to list all the tile IDs that can be walked on. Let's iterate over all of them
                 // and see what properties have been entered in Tiled.
-                for(var i = tileset.firstgid-1; i < tiles.total; i++){ // firstgid and total are fields from Tiled that indicate the range of IDs that the tiles can take in that tileset
-                    if(!properties.hasOwnProperty(i)) {
+                for (var i = tileset.firstgid - 1; i < tiles.total; i++) { // firstgid and total are fields from Tiled that indicate the range of IDs that the tiles can take in that tileset
+                    if (!properties.hasOwnProperty(i)) {
                         // If there is no property indicated at all, it means it's a walkable tile
-                        acceptableTiles.push(i+1);
+                        acceptableTiles.push(i + 1);
                         continue;
                     }
-                    if(!properties[i].collide) acceptableTiles.push(i+1);
-                    if(properties[i].cost) Game.finder.setTileCost(i+1, properties[i].cost); // If there is a cost attached to the tile, let's register it
+                    if (!properties[i].collide) acceptableTiles.push(i + 1);
+                    if (properties[i].cost) Game.finder.setTileCost(i + 1, properties[i].cost); // If there is a cost attached to the tile, let's register it
                 }
                 Game.finder.setAcceptableTiles(acceptableTiles);
 
@@ -84,7 +85,10 @@ angular.module('app.game', [])
 
                 socket.on('deletePlayer', function (id) {
                     angular.forEach(players, function (player, index) {
-                        if (player.socket === id) players.splice(index, 1);
+                        if (player.socket === id) {
+                            player.sprite.destroy();
+                            players.splice(index, 1);
+                        }
                     })
                 })
 
@@ -93,7 +97,7 @@ angular.module('app.game', [])
                     angular.forEach(players, function (player, index) {
                         console.log('--------------------------------');
                         console.log('Player: ' + player.socket + ' | Data Socket: ' + data.socket);
-                        if (player.socket == data.socket){
+                        if (player.socket == data.socket) {
                             players[index].x = data.x;
                             players[index].y = data.y;
                             moveCharacter(data.path, player.sprite);
@@ -109,7 +113,7 @@ angular.module('app.game', [])
                 var pointerTileY = Game.map.worldToTileY(worldPoint.y);
                 Game.marker.x = Game.map.tileToWorldX(pointerTileX);
                 Game.marker.y = Game.map.tileToWorldY(pointerTileY);
-                checkCollision(pointerTileX, pointerTileY);
+                // checkCollision(pointerTileX, pointerTileY);
                 if (cursor.left.isDown) {
                     var newX = Game.blabla.x--;
                 }
@@ -137,7 +141,7 @@ angular.module('app.game', [])
             self.y = user.getY();
 
             function addPlayer(player) {
-                var sprite = Game.scene.add.sprite(player.x * 16, player.y * 16, 'player');
+                var sprite = Game.scene.add.sprite(player.x * 32, player.y * 32, 'player');
                 sprite.setDepth(1);
                 sprite.setOrigin(0, 0.5);
                 player.sprite = sprite;
@@ -147,6 +151,7 @@ angular.module('app.game', [])
                     user.setX(player.x);
                     user.setY(player.y);
                     user.setSprite(sprite);
+                    Game.camera.startFollow(sprite);
                 }
             }
 
@@ -160,23 +165,24 @@ angular.module('app.game', [])
                 return tile.properties.collide == true;
             }
 
-            function getTileID(x,y){
+            function getTileID(x, y) {
                 var tile = Game.map.getTileAt(x, y);
-                return tile.index;
+                if (tile)
+                    return tile.index;
             };
 
-            function handleClick(pointer){
+            function handleClick(pointer) {
                 var x = Game.camera.scrollX + pointer.x;
                 var y = Game.camera.scrollY + pointer.y;
-                var toX = Math.floor(x/32);
-                var toY = Math.floor(y/32);
-                var fromX = Math.floor(user.getSprite().x/32);
-                var fromY = Math.floor(user.getSprite().y/32);
-                console.log('going from ('+fromX+','+fromY+') to ('+toX+','+toY+')');
+                var toX = Math.floor(x / 32);
+                var toY = Math.floor(y / 32);
+                var fromX = Math.floor(user.getSprite().x / 32);
+                var fromY = Math.floor(user.getSprite().y / 32);
+                console.log('going from (' + fromX + ',' + fromY + ') to (' + toX + ',' + toY + ')');
                 user.setX(toX);
                 user.setY(toY);
 
-                Game.finder.findPath(fromX, fromY, toX, toY, function( path ) {
+                Game.finder.findPath(fromX, fromY, toX, toY, function (path) {
                     if (path === null) {
                         console.warn("Path was not found.");
                     } else {
@@ -193,17 +199,17 @@ angular.module('app.game', [])
                 Game.finder.calculate(); // don't forget, otherwise nothing happens
             };
 
-            function moveCharacter(path, sprite){
+            function moveCharacter(path, sprite) {
                 console.log('PATH MOVE');
                 // Sets up a list of tweens, one for each tile to walk, that will be chained by the timeline
                 var tweens = [];
-                for(var i = 0; i < path.length-1; i++){
-                    var ex = path[i+1].x;
-                    var ey = path[i+1].y;
+                for (var i = 0; i < path.length - 1; i++) {
+                    var ex = path[i + 1].x;
+                    var ey = path[i + 1].y;
                     tweens.push({
                         targets: sprite,
-                        x: {value: ex*Game.map.tileWidth, duration: 300},
-                        y: {value: ey*Game.map.tileHeight, duration: 300}
+                        x: {value: ex * Game.map.tileWidth, duration: 300},
+                        y: {value: ey * Game.map.tileHeight, duration: 300}
                     });
                 }
 
