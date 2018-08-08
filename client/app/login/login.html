@@ -1,0 +1,25 @@
+<div class="login">
+    <div layout="row">
+        <div flex="40"></div>
+        <div flex="20" class="login">
+            <form>
+                <div layout="column">
+                    <md-input-container>
+                        <label>Name</label>
+                        <input type="text" ng-model="ctrl.name" required>
+                    </md-input-container>
+                </div>
+                <div layout="column">
+                    <md-input-container>
+                        <label>Passwort</label>
+                        <input type="password" ng-model="ctrl.pass" required>
+                    </md-input-container>
+                </div>
+                <div layout="column">
+                    <md-button class="md-raised" ng-click="ctrl.clickLogin()">Anmelden</md-button>
+                </div>
+            </form>
+        </div>
+        <div flex="40"><md-button class="md-raised" ng-click="ctrl.test()">TEST</md-button></div>
+    </div>
+</div>
